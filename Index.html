@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script type="text/javascript" src="/VirtualHumidor/scripts/jquery.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/bootstrap/js/bootstrap.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/js/kendo.web.js"></script>
+    <link href="/VirtualHumidor/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="/VirtualHumidor/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="/VirtualHumidor/styles/kendo.common.min.css" rel="stylesheet" media="screen">
+    <link href="/VirtualHumidor/styles/kendo.default.min.css" rel="stylesheet" media="screen">
+    <link href="/VirtualHumidor/jquery-ui-1.10.3.custom/css/flick/jquery-ui-1.10.3.custom.css" rel="stylesheet" media="screen">
+    <title>Virtual Humidor</title>
+    <style>
+        .note{
+            width: 100%
+        }
+    </style>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#humidor").kendoGrid({
+                dataSource: {
+                    type: "json",
+                    transport: {
+                        read: "/VirtualHumidor/GetCigars.php"
+                    },
+                    schema: {
+                        model: {
+                            fields: {
+                                UserId: { type: "string" },
+                                CigarId: { type: "string" },
+                                CigarName: { type: "string" },
+                                CigarBrand: { type: "string" },
+                                CigarVitola: { type: "string" },
+                                CigarQuantity: { type: "string" },
+                                PurchaseDate: { type: "string" }
+                            }
+                        }
+                    },
+                    pageSize: 10,
+                    serverPaging: true,
+                    serverFiltering: true,
+                    serverSorting: true
+                },
+                filterable: true,
+                sortable: true,
+                pageable: true,
+                columns: [{
+                    field:"CigarName"
+                },
+                    {
+                        field:"CigarBrand"
+                    },
+                    {
+                        field:"CigarVitola"
+                    },
+                    {
+                        field:"CigarQuantity"
+                    },
+                    {
+                        field:"PurchaseDate"
+                    },
+                    {
+                        field: "Buttons",
+                        title: "",
+                        template: '<a href="javascript:void(0);" class="btn btn-small btn-primary" onclick="addNote(\'#= UserId #\', \'#= CigarId #\')"><i class="icon-edit icon-white"></i></a>'
+                    }
+                ]
+            });
+        });
+        function addNote(id, cigarId){
+            $("#addNotesModal").modal('show');
+            $("#userId").val(id);
+            $("#cigarId").val(cigarId);
+            $("#notes").kendoGrid({
+                dataSource: {
+                    type: "json",
+                    transport: {
+                        read: "/VirtualHumidor/GetNotes.php?user=" + id + "&cigar=" + cigarId + ""
+                    },
+                    schema: {
+                        model: {
+                            fields: {
+                                NoteId: { type: "string" },
+                                Note: { type: "string" }
+                            }
+                        }
+                    },
+                    pageSize: 5,
+                    serverPaging: true,
+                    serverFiltering: true,
+                    serverSorting: true
+                },
+                filterable: true,
+                sortable: true,
+                pageable: true,
+                columns: [
+                    {
+                        field:"Note"
+                    }
+                ]
+            });
+        };
+        function saveNote(){
+            $.ajax({
+                        url: 'SaveNote.php',
+                        type: 'post',
+                        data: {
+                            id : $("#userId").val(),
+                            cigarid: $("#cigarId").val(),
+                            note : $("#note").val()
+                        },
+                        success: function() {
+                            $("#note").val("");
+                            $("#notes").data("kendoGrid").dataSource.read();
+                        }
+            });
+        };
+    </script>
+</head>
+<body>
+<div>
+    <div class="container">
+        <div class="row">
+            <div class="span12">
+                <h1>Virtual Humidor</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span12">
+                <span>Manufacturer: </span><input id="manufacturer"/><span>Cigar: </span><input id="cigar"/><span>Vitola: </span><input id="vitola"/>
+                <span>Quantity: </span><input id="quantity"/><span>Date Purchased: </span><input id="date"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span12">
+                <div id="humidor"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div id="addNotesModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="myModalLabel">Cigar Notes</h3>
+        </div>
+        <div class="modal-body">
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span12">
+                        <div id="notes"></div>
+                        <textarea id="note" class="note" rows="10"></textarea>
+                        <input id="userId" style="display:none"/>
+                        <input id="cigarId" style="display:none"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+            <button class="btn btn-primary" onclick="saveNote()">Save note</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
