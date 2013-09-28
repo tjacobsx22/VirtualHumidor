@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="myApp">
 <head>
+
     <script type="text/javascript" src="/VirtualHumidor/scripts/jquery.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/scripts/angular.js"></script>
     <script type="text/javascript" src="/VirtualHumidor/bootstrap/js/bootstrap.js"></script>
     <script type="text/javascript" src="/VirtualHumidor/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
     <script type="text/javascript" src="/VirtualHumidor/js/kendo.web.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/select2-3.4.3/select2.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/js/select2-ui.js"></script>
     <link href="/VirtualHumidor/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="/VirtualHumidor/select2-3.4.3/select2.css" rel="stylesheet">
     <link href="/VirtualHumidor/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
     <link href="/VirtualHumidor/styles/kendo.common.min.css" rel="stylesheet" media="screen">
     <link href="/VirtualHumidor/styles/kendo.default.min.css" rel="stylesheet" media="screen">
@@ -17,7 +22,33 @@
         }
     </style>
     <script type="text/javascript">
+        var myAppModule = angular.module('myApp', ['ui.select2']);
+
+        function Cigars($scope, $http) {
+            //$scope.select2Options = {
+            //    "page-limit": 10
+            //};
+            //$http.get('GetCigarDatabase.php').success(function(data){
+            //    $scope.cigars = data;
+            //});
+        }
+
         $(document).ready(function() {
+            $("#cigarPicker").select2({
+                minimumInputLength: 3,
+                ajax: { // instead of writing the function to execute the request we use Select2's convenient helper
+                    url: "getCigarDropDown.php",
+                    dataType: 'json',
+                    data: function (term, page) {
+                        return {
+                            q: term
+                        };
+                    },
+                    results: function (data, page) {
+                        return {results: data};
+                    }
+                }
+            });
             $("#humidor").kendoGrid({
                 dataSource: {
                     type: "json",
@@ -119,7 +150,7 @@
     </script>
 </head>
 <body>
-<div>
+<div ng-controller="Cigars">
     <div class="container">
         <div class="row">
             <div class="span12">
@@ -128,8 +159,11 @@
         </div>
         <div class="row">
             <div class="span12">
-                <span>Manufacturer: </span><input id="manufacturer"/><span>Cigar: </span><input id="cigar"/><span>Vitola: </span><input id="vitola"/>
-                <span>Quantity: </span><input id="quantity"/><span>Date Purchased: </span><input id="date"/>
+                <input class="input-xlarge" type='hidden' ui-select2 id="cigarPicker" ng-model="selected"/>
+                <br/>
+                Selected:
+                <br/>
+                {{selected.name}} - {{selected.wrapper}} - {{selected.color}} - {{selected.strength}}
             </div>
         </div>
         <div class="row">
