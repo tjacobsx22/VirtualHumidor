@@ -1,7 +1,7 @@
 <?php
 $arr = array();
 $con=mysqli_connect("localhost","root","","virtualhumidor");
-  $result = mysqli_query($con,"SELECT * FROM cigars");
+  $result = mysqli_query($con,"SELECT * FROM cigarsClean");
   while($row = mysqli_fetch_array($result))
     {
         $arr[] = array( "name"=>$row['Name'],
@@ -11,7 +11,7 @@ $con=mysqli_connect("localhost","root","","virtualhumidor");
                         "filler"=>$row['Filler'],
                         "wrapper"=>$row['Wrapper'],
                         "color"=>$row['Color'],
-                        "strength"=>$row['Strength'],
+                        "strength"=>$row['Strength']
         );
     }
 

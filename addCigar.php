@@ -1,5 +1,4 @@
 <?php
-
     function guid(){
         if (function_exists('com_create_guid')){
             return com_create_guid();
@@ -17,16 +16,11 @@
             return $uuid;
         }
     }
-
-    $client_id = $_POST['id'];
-    $cigar_id = $_POST['cigarid'];
-    $client_note = $_POST['note'];
-    $client_note_count = $_POST['noteCount'];
-    $count = $client_note_count + 1;
     $newid = guid();
+    $data = json_decode(file_get_contents("php://input"));
     $con=mysqli_connect("localhost","root","","virtualhumidor");
-    $result = mysqli_query($con,"INSERT INTO notes VALUES($client_id, $cigar_id, '$client_note', '$newid')");
-    $result2 = mysqli_query($con,"UPDATE humidor SET NoteCount = $count WHERE CigarId = $cigar_id AND UserId = $client_id");
-    echo($count);
+    $result = mysqli_query($con,"INSERT INTO humidor VALUES('$newid', '1', '$data->name', '$data->manufacturer', '', '$data->quantity', '$data->date', '$data->id', '$data->length', '$data->ring')");
+    //echo($newid);
     mysqli_close($con);
+    echo $result;
 ?>

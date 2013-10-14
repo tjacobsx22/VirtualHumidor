@@ -9,6 +9,7 @@
     <script type="text/javascript" src="/VirtualHumidor/js/kendo.web.js"></script>
     <script type="text/javascript" src="/VirtualHumidor/select2-3.4.3/select2.js"></script>
     <script type="text/javascript" src="/VirtualHumidor/js/select2-ui.js"></script>
+    <script type="text/javascript" src="/VirtualHumidor/scripts/angular-kendo.js"></script>
     <link href="/VirtualHumidor/bootstrap/css/bootstrap.css" rel="stylesheet">
     <link href="/VirtualHumidor/select2-3.4.3/select2.css" rel="stylesheet">
     <link href="/VirtualHumidor/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
@@ -22,18 +23,45 @@
         }
     </style>
     <script type="text/javascript">
-        var myAppModule = angular.module('myApp', ['ui.select2']);
+        var myAppModule = angular.module('myApp', ['ui.select2', 'kendo.directives']);
 
         function Cigars($scope, $http) {
-            //$scope.select2Options = {
-            //    "page-limit": 10
-            //};
-            //$http.get('GetCigarDatabase.php').success(function(data){
-            //    $scope.cigars = data;
-            //});
+            var setSelected = function(){
+                $scope.selected = {};
+                $scope.selected.name = "";
+                $scope.selected.manufacturer = "";
+                $scope.selected.id = "";
+                $scope.selected.ring = 0;
+                $scope.selected.length = 0;
+                $scope.selected.quantity = 0;
+                $scope.selected.date = "";
+
+            }
+            setSelected();
+            $scope.addCigar = false;
+            $scope.addCigarOption = function(){
+                $scope.addCigar = ($scope.addCigar ? false : true);
+                if($scope.addCigar){
+                    $("#addCigarModal").modal('show');
+                }else{ $("#addCigarModal").modal('hide');}
+            };
+            $scope.insertCigar = function(){
+                if($scope.addCigarForm.$valid){
+                    $http.post('addCigar.php', $scope.selected).success(function(data){
+                            $("#humidor").data("kendoGrid").dataSource.read();
+                            $("#addCigarModal").modal('hide');
+                            setSelected();
+                            $scope.addCigar = false;
+                            $("#datePicker").val("");
+                    });
+                }
+            };
         }
 
         $(document).ready(function() {
+            //$("#datePicker").kendoDatePicker();
+            $("#notesButton").tooltip();
+            //$("[rel='tooltip']").tooltip();
             $("#cigarPicker").select2({
                 minimumInputLength: 3,
                 ajax: { // instead of writing the function to execute the request we use Select2's convenient helper
@@ -64,14 +92,11 @@
                                 CigarBrand: { type: "string" },
                                 CigarVitola: { type: "string" },
                                 CigarQuantity: { type: "string" },
-                                PurchaseDate: { type: "string" }
+                                PurchaseDate: { type: "date" }
                             }
                         }
                     },
-                    pageSize: 10,
-                    serverPaging: true,
-                    serverFiltering: true,
-                    serverSorting: true
+                    pageSize: 10
                 },
                 filterable: true,
                 sortable: true,
@@ -83,26 +108,28 @@
                         field:"CigarBrand"
                     },
                     {
-                        field:"CigarVitola"
-                    },
-                    {
                         field:"CigarQuantity"
                     },
                     {
-                        field:"PurchaseDate"
+                        field:"PurchaseDate",
+                        template: "#= kendo.toString(PurchaseDate, 'd')#"
+                    },
+                    {
+                        field:"Age"
                     },
                     {
                         field: "Buttons",
                         title: "",
-                        template: '<a href="javascript:void(0);" class="btn btn-small btn-primary" onclick="addNote(\'#= UserId #\', \'#= CigarId #\')"><i class="icon-edit icon-white"></i></a>'
+                        template: '<a href="javascript:void(0);" rel="tooltip" id="notesButton" title="Notes" class="btn btn-small btn-primary" onclick="addNote(\'#= UserId #\', \'#= CigarId #\', \'#= NoteCount #\')"><span style="color:white;font-weight: bolder">#= NoteCount #</span>  <i class="icon-edit icon-white"></i></a> <a href="javascript:void(0)" class="btn btn-small btn-danger" onclick="DeleteCigar(\'#= RecordId #\', \'#= UserId #\')">Delete</a>'
                     }
                 ]
             });
         });
-        function addNote(id, cigarId){
+        function addNote(id, cigarId, noteCount){
             $("#addNotesModal").modal('show');
             $("#userId").val(id);
             $("#cigarId").val(cigarId);
+            $("#noteCount").val(noteCount);
             $("#notes").kendoGrid({
                 dataSource: {
                     type: "json",
@@ -132,6 +159,27 @@
                 ]
             });
         };
+        function DeleteCigar(id, user){
+            $("#hiddenRecordId").val(id);
+            $("#hiddenUserId").val(user);
+            $("#deleteCigarModal").modal('show');
+
+        };
+        function deleteCigarRecord(){
+            $.ajax({
+                url: 'DeleteCigarRecord.php',
+                type: 'post',
+                data: {
+                    id : $("#hiddenRecordId").val(),
+                    user: $("#hiddenUserId").val()
+                },
+                success: function() {
+                    $("#deleteCigarModal").modal('hide');
+                    $("#hiddenRecordId").val("");
+                    $("#humidor").data("kendoGrid").dataSource.read();
+                }
+            });
+        };
         function saveNote(){
             $.ajax({
                         url: 'SaveNote.php',
@@ -139,11 +187,14 @@
                         data: {
                             id : $("#userId").val(),
                             cigarid: $("#cigarId").val(),
-                            note : $("#note").val()
+                            note : $("#note").val(),
+                            noteCount: $("#noteCount").val()
                         },
                         success: function() {
                             $("#note").val("");
+                            $("#addNotesModal").modal('hide');
                             $("#notes").data("kendoGrid").dataSource.read();
+                            $("#humidor").data("kendoGrid").dataSource.read();
                         }
             });
         };
@@ -155,15 +206,12 @@
         <div class="row">
             <div class="span12">
                 <h1>Virtual Humidor</h1>
+
             </div>
         </div>
         <div class="row">
-            <div class="span12">
-                <input class="input-xlarge" type='hidden' ui-select2 id="cigarPicker" ng-model="selected"/>
-                <br/>
-                Selected:
-                <br/>
-                {{selected.name}} - {{selected.wrapper}} - {{selected.color}} - {{selected.strength}}
+            <div class="span4">
+                <a href="javascript:void(0)" ng-click="addCigarOption()" ng-hide="addCigar" class="btn btn-primary btn-small"><i class="icon-plus-sign icon-white"></i> Add cigar</a>
             </div>
         </div>
         <div class="row">
@@ -186,6 +234,7 @@
                         <textarea id="note" class="note" rows="10"></textarea>
                         <input id="userId" style="display:none"/>
                         <input id="cigarId" style="display:none"/>
+                        <input id="noteCount" style="display:none"/>
                     </div>
                 </div>
             </div>
@@ -193,6 +242,105 @@
         <div class="modal-footer">
             <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
             <button class="btn btn-primary" onclick="saveNote()">Save note</button>
+        </div>
+    </div>
+    <div id="addCigarModal" class="modal hide fade" role="dialog" aria-labelledby="myCigarLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="myCigarLabel">Add a cigar</h3>
+        </div>
+        <div class="modal-body">
+            <div class="container-fluid">
+                <form name="addCigarForm">
+                    <div class="row-fluid">
+                        <div class="span12">
+                            <span style="color:red;font-weight: bold">* Required Fields</span>
+                        </div>
+                    </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Quick select a cigar: </span>
+                    </div>
+                    <div class="span8">
+                        <input class="input-xlarge" type='hidden' ui-select2 id="cigarPicker" ng-model="selected"/>
+                    </div>
+                </div>
+                <br/>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Cigar name: <span style="color:red">*</span></span>
+                    </div>
+                    <div class="span8">
+                        <input type="text" ng-model="selected.name" required/>
+                    </div>
+                </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Cigar brand: <span style="color:red">*</span></span>
+                    </div>
+                    <div class="span8">
+                        <input type="text" ng-model="selected.manufacturer" required/>
+                    </div>
+                </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Cigar length:</span>
+                    </div>
+                    <div class="span8">
+                        <input type="text" ng-model="selected.length"/>
+                    </div>
+                </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Cigar ring gauge:</span>
+                    </div>
+                    <div class="span8">
+                        <input type="text" ng-model="selected.ring"/>
+                    </div>
+                </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Cigar quantity: <span style="color:red">*</span></span>
+                    </div>
+                    <div class="span8">
+                        <input type="text" ng-model="selected.quantity" required/>
+                    </div>
+                </div>
+                <div class="row-fluid" ng-show="addCigar">
+                    <div class="span4 text-right">
+                        <span>Purchase Date: <span style="color:red">*</span></span>
+                    </div>
+                    <div class="span8">
+                        <input type="date" id="datePicker" kendo-date-picker ng-model="selected.date" required/>
+                    </div>
+                </div>
+                </form>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" ng-show="addCigar" class="btn btn-danger btn-small"><i class="icon-remove icon-white"></i> Cancel</a>
+            <a href="javascript:void(0)" ng-show="addCigar" ng-click="insertCigar()" ng-disabled="addCigarForm.$invalid"  class="btn btn-primary btn-small"><i class="icon-plus icon-white"></i> Add</a>
+        </div>
+    </div>
+    <div id="deleteCigarModal" class="modal hide fade" role="dialog" aria-labelledby="deleteCigarLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="deleteCigarLabel">Delete a row</h3>
+        </div>
+        <div class="modal-body">
+            <div class="container-fluid">
+                <div class="row-fluid">
+                    <div class="span12">
+                        <input type="hidden" id="hiddenUserId"/>
+                        <input type="hidden" id="hiddenRecordId"/>
+                        <div class="alert alert-danger">You are about to delete this entire row.  If you wish to continue, click delete, or else click cancel to go back.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" class="btn btn-small"><i class="icon-remove"></i> Cancel</a>
+            <a href="javascript:void(0)" onclick="deleteCigarRecord()" class="btn btn-danger btn-small"><i class="icon-trash icon-white"></i> Delete</a>
         </div>
     </div>
 </div>
