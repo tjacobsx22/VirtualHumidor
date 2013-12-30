@@ -2,20 +2,20 @@
 <html lang="en" ng-app="myApp">
 <head>
 
-    <script type="text/javascript" src="/VirtualHumidor/scripts/jquery.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/scripts/angular.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/bootstrap/js/bootstrap.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/js/kendo.web.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/select2-3.4.3/select2.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/js/select2-ui.js"></script>
-    <script type="text/javascript" src="/VirtualHumidor/scripts/angular-kendo.js"></script>
-    <link href="/VirtualHumidor/bootstrap/css/bootstrap.css" rel="stylesheet">
-    <link href="/VirtualHumidor/select2-3.4.3/select2.css" rel="stylesheet">
-    <link href="/VirtualHumidor/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
-    <link href="/VirtualHumidor/styles/kendo.common.min.css" rel="stylesheet" media="screen">
-    <link href="/VirtualHumidor/styles/kendo.default.min.css" rel="stylesheet" media="screen">
-    <link href="/VirtualHumidor/jquery-ui-1.10.3.custom/css/flick/jquery-ui-1.10.3.custom.css" rel="stylesheet" media="screen">
+    <script type="text/javascript" src="scripts/jquery.js"></script>
+    <script type="text/javascript" src="scripts/angular.js"></script>
+    <script type="text/javascript" src="bootstrap/js/bootstrap.js"></script>
+    <script type="text/javascript" src="jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.js"></script>
+    <script type="text/javascript" src="js/kendo.web.js"></script>
+    <script type="text/javascript" src="select2-3.4.3/select2.js"></script>
+    <script type="text/javascript" src="js/select2-ui.js"></script>
+    <script type="text/javascript" src="scripts/angular-kendo.js"></script>
+    <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="select2-3.4.3/select2.css" rel="stylesheet">
+    <link href="bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+    <link href="styles/kendo.common.min.css" rel="stylesheet" media="screen">
+    <link href="styles/kendo.default.min.css" rel="stylesheet" media="screen">
+    <link href="jquery-ui-1.10.3.custom/css/flick/jquery-ui-1.10.3.custom.css" rel="stylesheet" media="screen">
     <title>Virtual Humidor</title>
     <style>
         .note{
@@ -23,7 +23,19 @@
         }
     </style>
     <script type="text/javascript">
-        var myAppModule = angular.module('myApp', ['ui.select2', 'kendo.directives']);
+        var myAppModule = angular.module('myApp', ['ui.select2', 'kendo.directives', 'UserValidation']);
+
+        angular.module('UserValidation', []).directive('validConfirmPassword', function () {
+            return {
+                require: 'ngModel',
+                link: function (scope, elm, attrs, ctrl) {
+                    ctrl.$parsers.unshift(function (viewValue) {
+                        var noMatch = viewValue != scope.register.Password;
+                        ctrl.$setValidity('noMatch', !noMatch)
+                    })
+                }
+            }
+        })
 
         function Cigars($scope, $http) {
             var setSelected = function(){
@@ -37,7 +49,15 @@
                 $scope.selected.date = "";
 
             }
+            var setRegistration = function(){
+                $scope.register = {};
+                $scope.register.User = "";
+                $scope.register.Email = "";
+                $scope.register.Password = "";
+                $scope.register.ConfirmPass = "";
+            }
             setSelected();
+            setRegistration();
             $scope.addCigar = false;
             $scope.addCigarOption = function(){
                 $scope.addCigar = ($scope.addCigar ? false : true);
@@ -81,7 +101,7 @@
                 dataSource: {
                     type: "json",
                     transport: {
-                        read: "/VirtualHumidor/GetCigars.php"
+                        read: "GetCigars.php"
                     },
                     schema: {
                         model: {
@@ -120,7 +140,8 @@
                     {
                         field: "Buttons",
                         title: "",
-                        template: '<a href="javascript:void(0);" rel="tooltip" id="notesButton" title="Notes" class="btn btn-small btn-primary" onclick="addNote(\'#= UserId #\', \'#= CigarId #\', \'#= NoteCount #\')"><span style="color:white;font-weight: bolder">#= NoteCount #</span>  <i class="icon-edit icon-white"></i></a> <a href="javascript:void(0)" class="btn btn-small btn-danger" onclick="DeleteCigar(\'#= RecordId #\', \'#= UserId #\')">Delete</a>'
+                        template: '<a href="javascript:void(0)" class="btn btn-small btn-primary" title="Smoke one." onclick="smokeOne(\'#= UserId #\', \'#= RecordId #\', \'#=CigarQuantity#\')"><i class="icon-fire icon-white"></i></a> ' +
+                                '<a href="javascript:void(0);" rel="tooltip" id="notesButton" title="Notes." class="btn btn-small btn-primary" onclick="addNote(\'#= UserId #\', \'#= CigarId #\', \'#= NoteCount #\')"><span style="color:white;font-weight: bolder">#= NoteCount #</span>  <i class="icon-edit icon-white"></i></a> <a href="javascript:void(0)" class="btn btn-small btn-danger" title="Delete row." onclick="DeleteCigar(\'#= RecordId #\', \'#= UserId #\')">Delete</a>'
                     }
                 ]
             });
@@ -134,7 +155,7 @@
                 dataSource: {
                     type: "json",
                     transport: {
-                        read: "/VirtualHumidor/GetNotes.php?user=" + id + "&cigar=" + cigarId + ""
+                        read: "GetNotes.php?user=" + id + "&cigar=" + cigarId + ""
                     },
                     schema: {
                         model: {
@@ -159,6 +180,35 @@
                 ]
             });
         };
+        function smokeOne(id, cigarId, qty){
+            if(qty == 1){
+                $.ajax({
+                    url: 'DeleteCigarRecord.php',
+                    type: 'post',
+                    data: {
+                        id : cigarId,
+                        user: id
+                    },
+                    success: function() {
+                        $("#humidor").data("kendoGrid").dataSource.read();
+                    }
+                });
+            }else{
+                qty--;
+            $.ajax({
+                url: 'SmokeOne.php',
+                type: 'post',
+                data: {
+                    id : cigarId,
+                    user: id,
+                    qty: qty
+                },
+                success: function() {
+                    $("#humidor").data("kendoGrid").dataSource.read();
+                }
+            });
+            }
+        };
         function DeleteCigar(id, user){
             $("#hiddenRecordId").val(id);
             $("#hiddenUserId").val(user);
@@ -182,7 +232,7 @@
         };
         function saveNote(){
             $.ajax({
-                        url: 'SaveNote.php',
+                        url: '/SaveNote.php',
                         type: 'post',
                         data: {
                             id : $("#userId").val(),
@@ -198,14 +248,20 @@
                         }
             });
         };
+    function register(){
+        $("#registerModal").modal("show");
+    };
+    function registerUser(){
+
+    };
     </script>
 </head>
 <body>
 <div ng-controller="Cigars">
     <div class="container">
         <div class="row">
-            <div class="span12">
-                <h1>Virtual Humidor</h1>
+            <div class="span7 pull-right">
+                <span>email </span><input/><span> password </span><input/><a href=""><span> </span>login</a><span> | </span><a href="javascript:void(0)" onclick="register()">register</a>
 
             </div>
         </div>
@@ -221,7 +277,7 @@
         </div>
     </div>
     <!-- Modal -->
-    <div id="addNotesModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div id="addNotesModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-dismiss="false">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
             <h3 id="myModalLabel">Cigar Notes</h3>
@@ -244,9 +300,8 @@
             <button class="btn btn-primary" onclick="saveNote()">Save note</button>
         </div>
     </div>
-    <div id="addCigarModal" class="modal hide fade" role="dialog" aria-labelledby="myCigarLabel" aria-hidden="true">
+    <div id="addCigarModal" class="modal hide fade" role="dialog" aria-labelledby="myCigarLabel" aria-hidden="true"  data-backdrop="static" data-dismiss="false">
         <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
             <h3 id="myCigarLabel">Add a cigar</h3>
         </div>
         <div class="modal-body">
@@ -318,7 +373,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" ng-show="addCigar" class="btn btn-danger btn-small"><i class="icon-remove icon-white"></i> Cancel</a>
+            <a href="javascript:void(0)" aria-hidden="true" ng-click="addCigarOption()" data-dismiss="modal" ng-show="addCigar" class="btn btn-danger btn-small"><i class="icon-remove icon-white"></i> Cancel</a>
             <a href="javascript:void(0)" ng-show="addCigar" ng-click="insertCigar()" ng-disabled="addCigarForm.$invalid"  class="btn btn-primary btn-small"><i class="icon-plus icon-white"></i> Add</a>
         </div>
     </div>
@@ -341,6 +396,45 @@
         <div class="modal-footer">
             <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" class="btn btn-small"><i class="icon-remove"></i> Cancel</a>
             <a href="javascript:void(0)" onclick="deleteCigarRecord()" class="btn btn-danger btn-small"><i class="icon-trash icon-white"></i> Delete</a>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal hide fade" role="dialog" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="registerModalLabel">Register</h3>
+        </div>
+        <div class="modal-body">
+            <div class="container-fluid">
+                <form name="registerForm">
+                <div class="row-fluid">
+                    <div class="span9 offset3">
+                        <label>User ID <span style="color:red;">*</span></label><input type="text" ng-model="register.User" required/>
+                    </div>
+                </div>
+                <div class="row-fluid">
+                    <div class="span9 offset3">
+                        <label>Email <span style="color:red;">*</span></label><input type="email" ng-model="register.Email" required/>
+                    </div>
+                </div>
+                <div class="row-fluid">
+                    <div class="span9 offset3">
+                        <label>Password <span style="color:red;">*</span></label><input type="password" ng-model="register.Password" required/>
+                    </div>
+                </div>
+                <div class="row-fluid">
+                    <div class="span9 offset3">
+                        <label>Confirm Password <span style="color:red;">*</span></label><input type="password" name="ConfirmPass" ng-model="register.ConfirmPass" valid-confirm-password required/>
+                        <br/>
+                        <div class="alert alert-danger" ng-show="registerForm.ConfirmPass.$error.noMatch">Passwords do not match.</div>
+                    </div>
+                </div>
+                </form>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" class="btn btn-small">Cancel</a>
+            <a href="javascript:void(0)" onclick="registerUser()"  ng-disabled="registerForm.$invalid" class="btn btn-primary btn-small">Register</a>
         </div>
     </div>
 </div>
