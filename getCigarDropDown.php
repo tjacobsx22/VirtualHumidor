@@ -1,4 +1,5 @@
 <?php
+session_start();
 $query = $_GET["q"];
 $arr = array();
 $con=mysqli_connect("localhost","root","","virtualhumidor");

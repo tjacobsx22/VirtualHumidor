@@ -1,4 +1,5 @@
 <?php
+session_start();
 $arr = array();
 $client_id = mysql_real_escape_string($_REQUEST["user"]);
 $cigar_id = mysql_real_escape_string($_REQUEST["cigar"]);

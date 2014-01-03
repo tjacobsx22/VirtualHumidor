@@ -1,7 +1,15 @@
 <?php
+session_start();
 $arr = array();
 $con=mysqli_connect("localhost","root","","virtualhumidor");
-  $result = mysqli_query($con,"SELECT * FROM humidor");
+  if(isset($_SESSION['id']))
+  {
+  $data = $_SESSION['id'];
+  $result = mysqli_query($con,"SELECT * FROM humidor WHERE userid = '". $data ."'");
+  }else
+  {
+     $result = mysqli_query($con,"SELECT * FROM humidor WHERE userid = '1'");
+  }
   while($row = mysqli_fetch_array($result))
     {
         $startDate = new DateTime();

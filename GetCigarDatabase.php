@@ -1,4 +1,5 @@
 <?php
+session_start();
 $arr = array();
 $con=mysqli_connect("localhost","root","","virtualhumidor");
   $result = mysqli_query($con,"SELECT * FROM cigarsClean");

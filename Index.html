@@ -21,6 +21,13 @@
         .note{
             width: 100%
         }
+        .background{
+            background-image:url('images/humidor.JPG');
+            background-repeat:no-repeat;
+            background-attachment:fixed;
+            background-position:center;
+            background-size:auto;
+        }
     </style>
     <script type="text/javascript">
         var myAppModule = angular.module('myApp', ['ui.select2', 'kendo.directives', 'UserValidation']);
@@ -56,8 +63,30 @@
                 $scope.register.Password = "";
                 $scope.register.ConfirmPass = "";
             }
+            var setUser = function(){
+                $http.post('isLoggedIn.php').success(function(data){
+                if(data[0].isLoggedIn == true)
+                {
+                    $scope.user = {};
+                    $scope.user.id = data[0].id;
+                    $scope.user.userid = data[0].user;
+                    $scope.user.password = "";
+                    $scope.user.email = data[0].email;
+                    $scope.user.isLoggedIn = true;
+                }else
+                {
+                    $scope.user = {};
+                    $scope.user.id = 1;
+                    $scope.user.userid = "";
+                    $scope.user.password = "";
+                    $scope.user.email = "";
+                    $scope.user.isLoggedIn = false;
+                }
+                });
+            }
             setSelected();
             setRegistration();
+            setUser();
             $scope.addCigar = false;
             $scope.addCigarOption = function(){
                 $scope.addCigar = ($scope.addCigar ? false : true);
@@ -73,8 +102,46 @@
                             setSelected();
                             $scope.addCigar = false;
                             $("#datePicker").val("");
-                    });
+                    }).error(function(error){
+                                alert(error);
+                            });
                 }
+            };
+            $scope.registerUser = function(){
+                $http.post('registerUser.php', $scope.register).success(function(data){
+                      if(data == 1){
+                          //User already exists
+                          alert("That user already exists!");
+                      }
+                    else{
+                          $("#registerModal").modal("hide");
+                          $scope.user.userid = $scope.register.User;
+                          $scope.user.password = $scope.register.Password;
+                          $scope.logInUser();
+                      }
+                });
+            };
+            $scope.logInUser = function(){
+                $http.post('logIn.php', $scope.user).success(function(data){
+                    if(data != ""){
+                        $scope.user.userid = data['user'];
+                        $scope.user.email = data['email'];
+                        $scope.user.id = data['id'];
+                        $scope.user.isLoggedIn = true;
+                        $("#humidor").data("kendoGrid").dataSource.read();
+                    }else
+                    alert("invalid username/password combination");
+                });
+            };
+            $scope.logOutUser = function(){
+                $http.post('logOut.php').success(function(){
+                    $scope.user.userid = "";
+                    $scope.user.password = "";
+                    $scope.user.email = "";
+                    $scope.user.id = 1;
+                    $scope.user.isLoggedIn = false;
+                    $("#humidor").data("kendoGrid").dataSource.read();
+                });
             };
         }
 
@@ -99,9 +166,9 @@
             });
             $("#humidor").kendoGrid({
                 dataSource: {
-                    type: "json",
                     transport: {
-                        read: "GetCigars.php"
+                        read: "GetCigars.php",
+                        dataType: "json"
                     },
                     schema: {
                         model: {
@@ -251,18 +318,17 @@
     function register(){
         $("#registerModal").modal("show");
     };
-    function registerUser(){
-
-    };
     </script>
 </head>
-<body>
+<body class="background">
 <div ng-controller="Cigars">
     <div class="container">
         <div class="row">
-            <div class="span7 pull-right">
-                <span>email </span><input/><span> password </span><input/><a href=""><span> </span>login</a><span> | </span><a href="javascript:void(0)" onclick="register()">register</a>
-
+            <div class="span7 pull-right" ng-hide="user.isLoggedIn">
+                <span>user id </span><input ng-model="user.userid"/><span> password </span><input ng-model="user.password"/><a href="javascript:void(0)" ng-click="logInUser()"><span> </span>login</a><span> | </span><a href="javascript:void(0)" onclick="register()">register</a>
+            </div>
+            <div class="span1 pull-right" ng-show="user.isLoggedIn">
+                <a href="javascript:void(0);" ng-click="logOutUser()">logout</a>
             </div>
         </div>
         <div class="row">
@@ -434,7 +500,7 @@
         </div>
         <div class="modal-footer">
             <a href="javascript:void(0)" aria-hidden="true" data-dismiss="modal" class="btn btn-small">Cancel</a>
-            <a href="javascript:void(0)" onclick="registerUser()"  ng-disabled="registerForm.$invalid" class="btn btn-primary btn-small">Register</a>
+            <a href="javascript:void(0)" ng-click="registerUser()"  ng-disabled="registerForm.$invalid" class="btn btn-primary btn-small">Register</a>
         </div>
     </div>
 </div>

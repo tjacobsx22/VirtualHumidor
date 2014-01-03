@@ -20,13 +20,12 @@ session_start();
     $newid = guid();
     $data = json_decode(file_get_contents("php://input"));
     $con=mysqli_connect("localhost","root","","virtualhumidor");
-    if(isset($_SESSION['id'])){
-    $id = $_SESSION['id'];
-    }else{
-    $id = 1;
-    }
-    $result = mysqli_query($con,"INSERT INTO humidor VALUES('$newid', '$id', '$data->name', '$data->manufacturer', '', '$data->quantity', '$data->date', '$data->id', '$data->length', '$data->ring', '')");
-    //echo($newid);
+    $result = mysqli_query($con,"SELECT * FROM user WHERE userid = '$data->User'");
+    //$userExists = mysql_fetch_array($result);
+    $total = $result->num_rows;
+    if($total == 0){
+    $result = mysqli_query($con,"INSERT INTO user VALUES('$newid', '$data->Email', '$data->User', '$data->Password')");
+   }
     mysqli_close($con);
-    echo $result;
+    echo $total;
 ?>

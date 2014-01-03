@@ -1,4 +1,5 @@
 <?php
+session_start();
 $record = $_POST['id'];
 $user = $_POST['user'];
 $con=mysqli_connect("localhost","root","","virtualhumidor");
